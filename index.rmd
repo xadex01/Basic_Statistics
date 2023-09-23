@@ -2,15 +2,19 @@
 title: "Understanding the Statistical Distributions"
 author: "AbdulHafiz Abba"
 date: "`r Sys.Date()`"
-output:
-  html_document:
-    df_print: paged
+output: 
+  cleanrmd::html_document_clean:
+    theme: NULL
+#output:
+#  html_document:
+#    theme: united 
+#    toc: true
+#    toc_float: true
+#    df_print: paged
   pdf_document: default
----
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+runtime: shiny
+---
 
 ## **Statistical Distributions**
 In statistics, there are many different probability distributions that are used to model and describe various types of data and random phenomena. These distributions can be broadly categorized into two main types: discrete and continuous distributions. Here are some of the most commonly encountered probability distributions in each category:
@@ -28,10 +32,77 @@ It's like asking, "What's the probability that I'll win when I play this game on
 
 So, if you're flipping a fair coin, you have a 50% chance of winning (getting a head) and a 50% chance of losing (getting a tail). In this case, the Bernoulli Distribution is pretty straightforward. It's like a simple tool for finding the probability of success in a basic "win or lose" situation.
 
+\[ 
+\begin{equation}
+P(X = x) = p^x \cdot (1 - p)^{1-x}
+\end{equation}
+\]
+```{r echo=FALSE}
+library(flexdashboard)
+library(shiny)
+library(ggplot2)
+library(knitr)
+# Define the user interface (UI)
+ui <- fluidPage(
+  titlePanel("Bernoulli Distribution"),
+  sidebarLayout(
+    sidebarPanel(
+      numericInput("p", "Probability of Success (p):", min = 0, max = 1, step = 0.01, value = 0.5),
+      actionButton("update", "Update Plot")
+    ),
+    mainPanel(
+      plotOutput("bernoulliPlot")
+    )
+  )
+)
 
-$P(X = x) = p^x \cdot (1 - p)^{1-x}$
+# Define the server logic
+server <- function(input, output) {
+  
+  # Create a reactive expression for the Bernoulli distribution
+  bernoulliDist <- reactive({
+    p <- input$p
+    x <- c(0, 1)
+    probabilities <- c(1 - p, p)
+    data.frame(x, probabilities)
+  })
+  
+  # Create the Bernoulli distribution plot
+  output$bernoulliPlot <- renderPlot({
+    df <- bernoulliDist()
+    
+    ggplot(df, aes(x = factor(x), y = probabilities)) +
+      geom_bar(stat = "identity", fill = "blue", width = 0.5) +
+      labs(title = "Bernoulli Distribution",
+           x = "Outcome",
+           y = "Probability") +
+      theme_minimal() +
+      ylim(0, 1)
+  })
+  
+  # Observe the "Update Plot" button click and update the plot
+  observeEvent(input$update, {
+    output$bernoulliPlot <- renderPlot({
+      df <- bernoulliDist()
+      
+      ggplot(df, aes(x = factor(x), y = probabilities)) +
+        geom_bar(stat = "identity", fill = "blue", width = 0.5) +
+        labs(title = "Bernoulli Distribution",
+             x = "Outcome",
+             y = "Probability") +
+        theme_minimal() +
+        ylim(0, 1)
+    })
+  })
+}
 
-```{r}
+# Run the Shiny app
+shinyApp(ui = ui, server = server)
+
+```
+
+
+```{r eval=FALSE, include=FALSE}
 # Set the seed for reproducibility
 set.seed(123)
 
@@ -52,8 +123,8 @@ hist(bernoulli_samples, breaks = 2, main = "Bernoulli Distribution",
 axis(1, at = c(0, 1), labels = c("Failure (0)", "Success (1)"))
 
 ```
-To demonstrate the Central Limit Theorem (CLT) for a Bernoulli distribution in R, you can simulate a large number of Bernoulli trials and then calculate the sample mean for each trial. Here's an example code to do that:
-```{r}
+
+```{r eval=FALSE, include=FALSE}
 # Set the seed for reproducibility
 set.seed(123)
 
@@ -113,8 +184,217 @@ $P(X = k) = \binom{n}{k} p^k (1-p)^{n-k}$
 
 You can use this formula to calculate the probability of achieving a specific number of successes in a given number of trials with a known probability of success for each trial.
 
+**Graph of Binomial Distribution**
+```{r echo=FALSE}
+library(shiny)
+library(ggplot2)
+
+ui <- fluidPage(
+  titlePanel("Binomial Distribution Plotter"),
+  sidebarLayout(
+    sidebarPanel(
+      numericInput("n", "Number of Trials (n):", value = 10),
+      sliderInput("p", "Success Probability (p):", min = 0, max = 1, value = 0.5, step = 0.01),
+      actionButton("update", "Update Plot")
+    ),
+    mainPanel(
+      plotOutput("binomialPlot")
+    )
+  )
+)
+
+server <- function(input, output) {
+  binomialDist <- reactive({
+    n <- input$n
+    p <- input$p
+    x <- seq(0, n, by = 1)
+    dbinom(x, size = n, prob = p)
+  })
+  
+  output$binomialPlot <- renderPlot({
+    x <- seq(0, input$n, by = 1)
+    plot(x, binomialDist(), type = "h", lwd = 10,
+         main = "Binomial Distribution",
+         xlab = "Number of Successes",
+         ylab = "Probability",
+         col = "blue",
+         ylim = c(0, max(binomialDist()) + 0.1))
+  })
+  
+  observeEvent(input$update, {
+    output$binomialPlot <- renderPlot({
+      x <- seq(0, input$n, by = 1)
+      plot(x, binomialDist(), type = "h", lwd = 10,
+           main = "Binomial Distribution",
+           xlab = "Number of Successes",
+           ylab = "Probability",
+           col = "blue",
+           ylim = c(0, max(binomialDist()) + 0.1))
+    })
+  })
+}
+
+shinyApp(ui = ui, server = server)
+
+```
+
+```{r eval=FALSE, include=FALSE}
+# Parameters for the binomial distribution
+n <- 50  # Number of trials
+p <- 0.5 # Probability of success (e.g., getting heads in a coin flip)
+
+# Calculate probabilities for each number of successes (0 to n)
+x <- 0:n
+probabilities <- dbinom(x, size = n, prob = p)
+
+# Create a bar plot of the binomial distribution
+barplot(probabilities, names.arg = x, xlab = "Number of Successes",
+        ylab = "Probability", main = "Binomial Distribution (n=10, p=0.5)",
+        col = "blue", border = "black")
+
+```
+**To demonstrate the Central Limit Theorem (CLT)** in the context of a binomial distribution, you can simulate the distribution of sample means for a large number of random samples and observe how it approximates a normal distribution.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(flexdashboard)
+library(shiny)
+
+# Define the user interface
+ui <- fluidPage(
+  titlePanel("Binomial Distribution Shiny App"),
+  sidebarLayout(
+    sidebarPanel(
+      numericInput("n", "Number of Trials (n):", value = 10),
+      sliderInput("p", "Success Probability (p):", min = 0, max = 1, value = 0.5, step = 0.01),
+      actionButton("update", "Update Plot")
+    ),
+    mainPanel(
+      plotOutput("binomialPlot")
+    )
+  )
+)
+
+# Define the server logic
+server <- function(input, output) {
+  
+  # Create a reactive expression for the Binomial distribution
+  binomialDist <- reactive({
+    n <- input$n
+    p <- input$p
+    x <- seq(0, n, by = 1)
+    dbinom(x, size = n, prob = p)
+  })
+  
+  # Create the Binomial distribution plot
+  output$binomialPlot <- renderPlot({
+    x <- seq(0, input$n, by = 1)
+    plot(x, binomialDist(), type = "h", lwd = 10,
+         main = "Binomial Distribution",
+         xlab = "Number of Successes",
+         ylab = "Probability",
+         col = "blue",
+         ylim = c(0, max(binomialDist()) + 0.1))
+  })
+  
+  # Observe the "Update Plot" button click and update the plot
+  observeEvent(input$update, {
+    output$binomialPlot <- renderPlot({
+      x <- seq(0, input$n, by = 1)
+      plot(x, binomialDist(), type = "h", lwd = 10,
+           main = "Binomial Distribution",
+           xlab = "Number of Successes",
+           ylab = "Probability",
+           col = "blue",
+           ylim = c(0, max(binomialDist()) + 0.1))
+    })
+  })
+}
+
+# Create the Shiny app
+shinyApp(ui = ui, server = server)
+
+```
+
+
 ### 3. Poisson Distribution:
 Describes the number of events occurring in a fixed interval of time or space, assuming a known average rate.
+
+Think of the Poisson Distribution as a way to predict how often something rare happens. It's like counting how many cars pass by a quiet street in an hour. Most of the time, you might see just a few cars, but occasionally, there might be a burst of cars passing by. The Poisson Distribution helps us figure out the chances of these bursts.
+
+In simple terms, it's used when we have events that happen randomly, but they're rare, and we want to know how often they occur in a specific amount of time or space.
+
+
+The probability mass function of the Poisson Distribution is given by:
+
+\[
+P(X = k) = \frac{e^{-\lambda} \cdot \lambda^k}{k!}
+\]
+
+Where:
+- \(P(X = k)\) is the probability of observing \(k\) events.
+- \(e\) is the mathematical constant (approximately 2.71828).
+- \(\lambda\) (lambda) is the average rate of events happening in the given time or space.
+- \(k\) is the number of events we want to find the probability for.
+- \(k!\) is the factorial of \(k\), which means multiplying all positive whole numbers from 1 to \(k\).
+
+This formula helps us calculate the likelihood of seeing a specific number of rare events when we know how often they usually happen on average (\(\lambda\)).
+
+```{r echo=FALSE}
+# Load necessary libraries
+library(shiny)
+library(ggplot2)
+
+# Define the UI for the Shiny app
+ui <- fluidPage(
+  titlePanel("Poisson Distribution Visualization"),
+  
+  # Sidebar layout
+  sidebarLayout(
+    sidebarPanel(
+      # User inputs
+      numericInput("lambda", "Average Rate (λ):", value = 5, min = 1, max = 20),
+      numericInput("k", "Number of Events (k):", value = 5, min = 1, max = 20)
+    ),
+    
+    mainPanel(
+      # Display the Poisson distribution plot
+      plotOutput("poissonPlot")
+    )
+  )
+)
+
+# Define the server logic
+server <- function(input, output) {
+  # Create the Poisson distribution plot
+  output$poissonPlot <- renderPlot({
+    lambda <- input$lambda
+    k <- input$k
+    
+    # Generate data for the Poisson distribution
+    x <- 0:20  # Possible values of k
+    
+    # Calculate the Poisson probability for each value of k
+    poisson_probs <- dpois(x, lambda)
+    
+    # Create a data frame for the plot
+    df <- data.frame(x, poisson_probs)
+    
+    # Plot the Poisson distribution
+    ggplot(df, aes(x, poisson_probs)) +
+      geom_bar(stat = "identity", fill = "blue", width = 0.5) +
+      labs(title = "Poisson Distribution",
+           x = "Number of Events (k)",
+           y = "Probability") +
+      theme_minimal()
+  })
+}
+
+# Run the Shiny app
+shinyApp(ui, server)
+
+```
+
 
 ### 4. Geometric Distribution:
 Models the number of trials needed to achieve the first success in a series of Bernoulli trials.
